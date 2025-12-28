@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="description"
+        content="Robust Single-shot Structured Light 3D Imaging via Neural Feature Decoding.">
+  <meta name="keywords" content="Structured Light, Depth Estimation, Neural Feature Matching, Sim2Real, 3D Reconstruction">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NSL: Robust Single-shot Structured Light 3D Imaging via Neural Feature Decoding</title>
+
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-PYVRSFMDRL"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-PYVRSFMDRL');
+  </script>
+
+  <link href="https://fonts.googleapis.com/css?family=Google+Sans|Noto+Sans|Castoro"
+        rel="stylesheet">
+
+  <link rel="stylesheet" href="./static/css/bulma.min.css">
+  <link rel="stylesheet" href="./static/css/bulma-carousel.min.css">
+  <link rel="stylesheet" href="./static/css/bulma-slider.min.css">
+  <link rel="stylesheet" href="./static/css/fontawesome.all.min.css">
+  <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/gh/jpswalsh/academicons@1/css/academicons.min.css">
+  <link rel="stylesheet" href="./static/css/index.css">
+  
+  <link rel="icon" href="./static/images/projector.png">
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script defer src="./static/js/fontawesome.all.min.js"></script>
+  <script src="./static/js/bulma-carousel.min.js"></script>
+  <script src="./static/js/bulma-slider.min.js"></script>
+  <script src="./static/js/index.js"></script>
+
+  <style>
+    .video-compare-container {
+      position: relative;
+      width: 100%;
+      padding-top: 56.25%; /* 16:9 Aspect Ratio */
+      overflow: hidden;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      cursor: col-resize;
+      background-color: #000;
+    }
+    
+    /* Common styles for both videos */
+    .video-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    /* Bottom Layer: Feature Matching (Ours) - Visible on the RIGHT side of the slider */
+    #video-feature {
+      z-index: 1;
+    }
+
+    /* Top Layer: Pixel Matching - Visible on the LEFT side of the slider */
+    /* We use clip-path to crop this video based on slider position */
+    #video-pixel {
+      z-index: 2;
+      /* Initial clip: show left 50% */
+      clip-path: inset(0 50% 0 0); 
+    }
+
+    /* The vertical slider handle line */
+    .slider-handle {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 50%; /* Initial position */
+      width: 2px;
+      background: white;
+      z-index: 3;
+      pointer-events: none; /* Let clicks pass through to container */
+      box-shadow: 0 0 5px rgba(0,0,0,0.5);
+    }
+    
+    /* The arrows icon on the handle */
+    .handle-icon {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 30px;
+      height: 30px;
+      background: white;
+      border-radius: 50%;
+      color: black;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    }
+
+    /* Labels */
+    .video-label {
+      position: absolute;
+      bottom: 15px;
+      padding: 6px 12px;
+      background: rgba(0, 0, 0, 0.7);
+      color: white;
+      font-weight: bold;
+      border-radius: 4px;
+      pointer-events: none;
+      user-select: none;
+      font-size: 14px;
+      z-index: 4;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .label-left { left: 15px; }
+    .label-right { right: 15px; }
+
+    /* Comparison Table Styles */
+    .comp-header {
+      font-weight: bold;
+      margin-bottom: 10px;
+      color: #4a4a4a;
+    }
+    .comp-row {
+      border-bottom: 1px solid #eee;
+      padding-bottom: 20px;
+      margin-bottom: 20px;
+    }
+    .comp-row:last-child {
+      border-bottom: none;
+    }
+    .image-border {
+      border-radius: 5px;
+      border: 1px solid #ddd;
+    }
+  </style>
+</head>
+<body>
+
+<section class="hero">
+  <div class="hero-body">
+    <div class="container is-max-desktop">
+      <div class="columns is-centered">
+        <div class="column has-text-centered">
+          <h1 class="title is-1 publication-title">Robust Single-shot Structured Light 3D Imaging via Neural Feature Decoding</h1>
+          <h2 class="subtitle is-3 publication-subtitle">SIGGRAPH Asia 2025</h2>
+          
+          <div class="is-size-5 publication-authors">
+            <span class="author-block"><a href="mailto:jiahengli@buaa.edu.cn">Jiaheng Li</a><sup>*1</sup>,</span>
+            <span class="author-block"><a href="https://daiqy.github.io/">Qiyu Dai</a><sup>*2</sup>,</span>
+            <span class="author-block"><a href="mailto:lh_li@stu.pku.edu.cn">Lihan Li</a><sup>3</sup>,</span>
+            <span class="author-block"><a href="https://scholar.google.com/citations?user=pEMEFwQAAAAJ&hl=en">Praneeth Chakravarthula</a><sup>5</sup>,</span>
+            <span class="author-block"><a href="https://users.cms.caltech.edu/~hesun/">He Sun</a><sup>4</sup>,</span>
+            <span class="author-block"><a href="http://baoquanchen.info/">Baoquan Chen</a><sup>†2</sup>,</span>
+            <span class="author-block"><a href="https://wenzhengchen.github.io/">Wenzheng Chen</a><sup>†1</sup></span>
+          </div>
+
+          <div class="is-size-5 publication-authors">
+            <span class="author-block"><sup>1</sup>Wangxuan Institute of Computer Technology, Peking University</span>
+            <span class="author-block"><sup>2</sup>School of Intelligence Science and Technology, Peking University</span>
+            <span class="author-block"><sup>3</sup>Yuanpei College, Peking University</span>
+            <span class="author-block"><sup>4</sup>College of Future Technology, Peking University</span>
+            <span class="author-block"><sup>5</sup>University of North Carolina at Chapel Hill</span>
+            <span class="author-block"><sup>*</sup>equal contributions</span>
+            <span class="author-block"><sup>†</sup>corresponding author</span>
+          </div>
+
+          <div class="column has-text-centered">
+            <div class="publication-links">
+              <span class="link-block">
+                <a href="https://arxiv.org/abs/2512.14028"
+                   class="external-link button is-normal is-rounded is-dark">
+                  <span class="icon">
+                      <i class="ai ai-arxiv"></i>
+                  </span>
+                  <span>arXiv</span>
+                </a>
+              </span>
+              <span class="link-block">
+                <a href="./static/paper/nsl.pdf" class="external-link button is-normal is-rounded is-dark">
+                  <span class="icon"><i class="fas fa-file-pdf"></i></span><span>Paper (high res.)</span>
+                </a>
+              </span>
+              <span class="link-block">
+                <a href="./static/paper/nsl_supp.pdf" class="external-link button is-normal is-rounded is-dark">
+                  <span class="icon"><i class="fas fa-file-pdf"></i></span><span>Supp (high res.)</span>
+                </a>
+              </span>
+              <span class="link-block">
+                <a href="https://github.com/Namisntimpot/NSL" class="external-link button is-normal is-rounded is-dark">
+                  <span class="icon"><i class="fab fa-github"></i></span><span>Code</span>
+                </a>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="hero teaser">
+  <div class="container is-max-desktop">
+    <div class="hero-body">
+      <img src="./static/images/teaser.jpg" alt="Teaser Image" style="width:100%; border-radius: 10px;">
+      <h2 class="subtitle has-text-centered">
+        <span class="dnerf">NSL</span>, <strong>N</strong>eural single-shot <strong>S</strong>tructured <strong>L</strong>ight, achieves robust and high-fidelity 3D reconstruction from a single-shot structured light input.
+      </h2>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container is-max-desktop">
+    <h2 class="title is-3 has-text-centered" style="margin-bottom: 50px;">Core Insights</h2>
+
+    <div class="columns is-vcentered" style="margin-bottom: 60px;">
+      <div class="column is-7">
+        
+        <div class="video-compare-container" id="video-compare-container">
+          
+          <video class="video-layer" id="video-feature" autoplay muted loop playsinline src="./static/videos/tearoom_nsl.mp4"></video>
+          
+          <video class="video-layer" id="video-pixel" autoplay muted loop playsinline src="./static/videos/tearoom_tradition.mp4"></video>
+
+          <div class="slider-handle" id="slider-handle">
+            <div class="handle-icon"><i class="fas fa-arrows-alt-h"></i></div>
+          </div>
+
+          <div class="video-label label-left">Pixel Matching (Baseline)</div>
+          <div class="video-label label-right" style="text-align: right;">Feature Matching (Ours)</div>
+
+        </div>
+        
+        <p class="is-size-7 has-text-centered has-text-grey" style="margin-top: 5px;">
+          <i class="fas fa-hand-pointer"></i> Drag slider to compare: Left = Pixel Matching, Right = Ours
+        </p>
+      </div>
+      
+      <div class="column is-5">
+        <h3 class="title is-4">Matching in Feature Domain</h3>
+        <p class="content is-size-5">
+          We argue that single-shot structured light decoding should be performed in the <strong>Neural Feature Domain</strong> rather than the fragile Pixel Domain.
+        </p>
+        <p class="content has-text-grey">
+          Traditional intensity-based matching fails easily with noise and surfaces not covered by projected pattern. Our method constructs cost volumes from deep features, producing significantly denser and more robust depth maps.
+        </p>
+      </div>
+    </div>
+
+    <hr>
+
+    <div class="columns is-vcentered" style="margin-bottom: 60px; margin-top: 60px;">
+      <div class="column is-5">
+        <h3 class="title is-4">100% Synthetic Training Data</h3>
+        <p class="content is-size-5">
+          Real-world data is not required. Training on high-fidelity <strong>synthetic data</strong> is sufficient for strong Sim2Real generalization.
+        </p>
+        <p class="content has-text-grey">
+          Physically plausible and fully randomized synthetic data is all you need.
+        </p>
+      </div>
+      <div class="column is-7 has-text-centered">
+         <video autoplay muted loop playsinline width="100%" style="border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1);">
+          <source src="./static/videos/dataset.mp4" type="video/mp4">
+        </video>
+      </div>
+    </div>
+
+    <hr>
+
+    <div class="columns is-vcentered" style="margin-top: 60px;">
+      <div class="column is-7 has-text-centered">
+        <img src="./static/images/prior.png" alt="Prior Guided Refinement" style="border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); width: 100%;">
+      </div>
+      <div class="column is-5">
+        <h3 class="title is-4">Leveraging Image Priors</h3>
+        <p class="content is-size-5">
+          Patterns inevitably fail in challenging areas (e.g., occlusion, specularities). We aggressively leverage <strong>Image Priors</strong> to repair these defects.
+        </p>
+        <p class="content has-text-grey">
+          Using the initial depth from neural matching as a prompt, we fine-tune <strong>Depth Anything V2</strong> to recover fine details and complete geometry that structured light alone cannot capture.
+        </p>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<section class="section">
+  <div class="container is-max-desktop">
+    <h2 class="title is-3 has-text-centered" style="margin-bottom: 30px;">Comparison</h2>
+    
+    <div class="columns is-centered has-text-centered comp-header is-hidden-mobile">
+      <div class="column is-3">Scene</div>
+      <div class="column is-3">Input Structured Light Image (Left)</div>
+      <div class="column is-3">Ours (NSL)</div>
+      <div class="column is-3">Traditional Pixel-Matching Method</div>
+    </div>
+
+    <div class="columns is-centered is-vcentered comp-row">
+      <div class="column is-3 has-text-centered">
+        <img src="./static/images/coffee/rgb.png" class="image-border" alt="Case 1 RGB">
+        <p class="is-hidden-tablet is-size-7">RGB</p>
+      </div>
+      <div class="column is-3 has-text-centered">
+        <img src="./static/images/coffee/ir.png" class="image-border" alt="Case 1 IR">
+        <p class="is-hidden-tablet is-size-7">IR</p>
+      </div>
+      <div class="column is-3 has-text-centered">
+        <video autoplay muted loop playsinline width="100%" src="./static/videos/coffee_nsl.mp4"></video>
+        <p class="is-hidden-tablet is-size-7">Ours</p>
+      </div>
+      <div class="column is-3 has-text-centered">
+        <video autoplay muted loop playsinline width="100%" src="./static/videos/coffee_tradition.mp4"></video>
+        <p class="is-hidden-tablet is-size-7">Traditional</p>
+      </div>
+    </div>
+
+    <div class="columns is-centered is-vcentered comp-row">
+      <div class="column is-3 has-text-centered">
+        <img src="./static/images/chair/rgb.png" class="image-border" alt="Case 2 RGB">
+      </div>
+      <div class="column is-3 has-text-centered">
+        <img src="./static/images/chair/ir.png" class="image-border" alt="Case 2 IR">
+      </div>
+      <div class="column is-3 has-text-centered">
+        <video autoplay muted loop playsinline width="100%" src="./static/videos/chair_nsl.mp4"></video>
+      </div>
+      <div class="column is-3 has-text-centered">
+        <video autoplay muted loop playsinline width="100%" src="./static/videos/chair_tradition.mp4"></video>
+      </div>
+    </div>
+
+    <div class="columns is-centered is-vcentered comp-row">
+      <div class="column is-3 has-text-centered">
+        <img src="./static/images/ricebox/rgb.png" class="image-border" alt="Case 3 RGB">
+      </div>
+      <div class="column is-3 has-text-centered">
+        <img src="./static/images/ricebox/ir.png" class="image-border" alt="Case 3 IR">
+      </div>
+      <div class="column is-3 has-text-centered">
+        <video autoplay muted loop playsinline width="100%" src="./static/videos/ricebox_nsl.mp4"></video>
+      </div>
+      <div class="column is-3 has-text-centered">
+        <video autoplay muted loop playsinline width="100%" src="./static/videos/ricebox_tradition.mp4"></video>
+      </div>
+    </div>
+
+    <div class="columns is-centered is-vcentered comp-row">
+      <div class="column is-3 has-text-centered">
+        <img src="./static/images/tools/rgb.png" class="image-border" alt="Case 4 RGB">
+      </div>
+      <div class="column is-3 has-text-centered">
+        <img src="./static/images/tools/ir.png" class="image-border" alt="Case 4 IR">
+      </div>
+      <div class="column is-3 has-text-centered">
+        <video autoplay muted loop playsinline width="100%" src="./static/videos/tools_nsl.mp4"></video>
+      </div>
+      <div class="column is-3 has-text-centered">
+        <video autoplay muted loop playsinline width="100%" src="./static/videos/tools_tradition.mp4"></video>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<section class="section has-background-light">
+  <div class="container is-max-desktop">
+    <div class="columns is-centered has-text-centered">
+      <div class="column is-four-fifths">
+        <h2 class="title is-3">Abstract</h2>
+        <div class="content has-text-justified">
+          <p>
+            We consider the problem of active 3D imaging using single-shot structured light systems. 
+            Traditional structured light methods typically decode depth correspondences through pixel-domain matching algorithms, resulting in limited robustness under challenging scenarios like occlusions, fine-structured details, and non-Lambertian surfaces.
+          </p>
+          <p>
+            Inspired by recent advances in neural feature matching, we propose a learning-based structured light decoding framework that performs robust correspondence matching within feature space rather than the fragile pixel domain. Our method extracts neural features from the projected patterns and captured infrared (IR) images, explicitly incorporating their geometric priors by building cost volumes in feature space.
+          </p>
+          <p>
+            To further enhance depth quality, we introduce a depth refinement module that leverages strong priors from large-scale monocular depth estimation models. Experiments demonstrate that our method, trained exclusively on synthetic data, generalizes well to real-world indoor environments and outperforms commercial systems.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container is-max-desktop">
+    <h2 class="title is-3 has-text-centered">Method Pipeline</h2>
+    <div class="columns is-centered">
+      <div class="column is-full-width has-text-centered">
+        <img src="./static/images/pipeline.png" alt="NSL Pipeline" style="width:100%; margin-top: 20px; margin-bottom: 20px;">
+        <div class="content has-text-justified">
+          <p>
+            <strong>The pipeline of NSL.</strong> Given a single or stereo pair of IR images and a projected pattern, NSL first estimates an initial raw depth map via the Neural Feature Matching module (left path). Next, the Monocular Depth Refinement module incorporates priors from a monocular depth estimation model, using the initial depth as a prompt (right path), generating a final depth map with enhanced structural detail.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="BibTeX">
+  <div class="container is-max-desktop content">
+    <h2 class="title">BibTeX</h2>
+    <pre><code>@inproceedings{li2025nsl,
+  title     = {Robust Single-shot Structured Light 3D Imaging via Neural Feature Decoding},
+  author    = {Jiaheng Li, Qiyu Dai, Lihan Li, Praneeth Chakravarthula, He Sun, Baoquan Chen and Wenzheng Chen},
+  booktitle = {SIGGRAPH Asia 2025 Conference Papers},
+  year      = {2025},
+  publisher = {ACM}
+}</code></pre>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="container">
+    <div class="content has-text-centered">
+      <p>
+        This website is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.
+      </p>
+    </div>
+  </div>
+</footer>
+
+<script>
+  const container = document.getElementById('video-compare-container');
+  const videoPixel = document.getElementById('video-pixel'); // Top layer
+  const sliderHandle = document.getElementById('slider-handle');
+
+  // Video Sync Logic
+  const videoFeature = document.getElementById('video-feature'); // Bottom layer
+  
+  if(videoPixel && videoFeature){
+      videoPixel.addEventListener('play', () => { videoFeature.play(); });
+      videoPixel.addEventListener('pause', () => { videoFeature.pause(); });
+      videoFeature.addEventListener('play', () => { videoPixel.play(); });
+      videoFeature.addEventListener('pause', () => { videoPixel.pause(); });
+      
+      // Keep strictly synced
+      setInterval(() => {
+          if (Math.abs(videoPixel.currentTime - videoFeature.currentTime) > 0.1) {
+              videoFeature.currentTime = videoPixel.currentTime;
+          }
+      }, 500);
+  }
+
+  function updateSlider(x) {
+    const rect = container.getBoundingClientRect();
+    const percentage = ((x - rect.left) / rect.width) * 100;
+    
+    // Clamp between 0 and 100
+    const safePercentage = Math.max(0, Math.min(100, percentage));
+    
+    // Move the handle
+    sliderHandle.style.left = safePercentage + '%';
+    
+    // Update clip-path for Top Video (Pixel Matching)
+    // We want to show the Top Video from 0 to Percentage.
+    // So we cut (inset) from the right side by (100 - percentage)%.
+    const insetAmount = 100 - safePercentage;
+    videoPixel.style.clipPath = `inset(0 ${insetAmount}% 0 0)`;
+  }
+
+  // Mouse events
+  container.addEventListener('mousemove', function(e) {
+    updateSlider(e.clientX);
+  });
+  
+  // Touch events
+  container.addEventListener('touchmove', function(e) {
+    updateSlider(e.touches[0].clientX);
+  });
+</script>
+
+</body>
+</html>
